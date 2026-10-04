@@ -31,6 +31,8 @@ docker compose up --build
 
 RabbitMQ Management: <http://localhost:15672> (`guest` / `guest`).
 
+Interface web: <http://localhost:8080>. Ela permite consultar estoque, criar pedidos e acompanhar o status do pagamento.
+
 ## Endpoints
 
 ```bash
@@ -58,6 +60,16 @@ docker compose up --scale pagamento-service=2
 
 # Logs com correlationId.
 docker compose logs pedido-service estoque-service pagamento-service
+```
+
+## Testes automatizados
+
+Cada serviço possui testes unitários com JUnit 5 e Mockito, além de testes de controller com MockMvc. Eles não precisam de Docker, PostgreSQL ou RabbitMQ.
+
+```bash
+cd estoque-service && mvn test
+cd ../pedido-service && mvn test
+cd ../pagamento-service && mvn test
 ```
 
 ## Limite intencional para discussão

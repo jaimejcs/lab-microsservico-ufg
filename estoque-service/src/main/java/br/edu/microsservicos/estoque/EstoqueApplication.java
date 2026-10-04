@@ -1,18 +1,33 @@
 package br.edu.microsservicos.estoque;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.LockModeType;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import org.slf4j.MDC;
 import org.springframework.boot.*;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.amqp.core.*;
+import org.springframework.amqp.core.Binding;
+import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.converter.*;
-import org.springframework.data.jpa.repository.*;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.http.*;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
 import br.edu.microsservicos.eventos.LiberarEstoqueEvento;
 
 @SpringBootApplication
@@ -59,6 +74,7 @@ record ProdutoResponse(Long id, String nome, Integer quantidade) { static Produt
 record ErroResponse(String mensagem) {}
 
 @RestController @RequestMapping("/produtos")
+@CrossOrigin(origins = "http://localhost:8080")
 class EstoqueController {
   private final ProdutoRepository produtos; private final ReservaRepository reservas;
   EstoqueController(ProdutoRepository produtos, ReservaRepository reservas) { this.produtos = produtos; this.reservas = reservas; }

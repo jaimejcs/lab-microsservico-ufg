@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Micro Store</title>
+  <style>
+    :root { font-family: Inter, system-ui, sans-serif; color: #172033; background: #f4f7fb; }
+    * { box-sizing: border-box; } body { margin: 0; } header { background: #16223b; color: white; padding: 28px max(20px, calc((100% - 960px) / 2)); }
+    h1 { margin: 0; font-size: 1.6rem; } header p { margin: 6px 0 0; opacity: .8; }
+    main { max-width: 960px; margin: 28px auto; padding: 0 20px; display: grid; gap: 20px; grid-template-columns: 1.1fr .9fr; }
+    section { background: white; border: 1px solid #e3e9f2; border-radius: 12px; padding: 20px; box-shadow: 0 4px 16px #16223b0a; }
+    .orders { grid-column: 1 / -1; } h2 { font-size: 1.1rem; margin: 0 0 16px; }
+    table { width: 100%; border-collapse: collapse; } th, td { padding: 11px 8px; text-align: left; border-bottom: 1px solid #edf0f5; }
+    th { color: #62708a; font-size: .75rem; text-transform: uppercase; } form { display: grid; gap: 13px; }
+    label { color: #46546c; display: grid; gap: 6px; font-size: .9rem; } select, input, button { border-radius: 7px; border: 1px solid #cbd5e1; min-height: 40px; padding: 8px 10px; font: inherit; }
+    button { cursor: pointer; border: 0; background: #2563eb; color: white; font-weight: 650; } button:hover { background: #1d4ed8; }
+    button.secondary { background: #e9eef8; color: #29405f; min-height: 33px; padding: 5px 10px; }.toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .message { min-height: 22px; margin: 14px 0 0; font-size: .9rem; } .success { color: #087443; } .error { color: #b42318; }
+    .status { font-size: .75rem; border-radius: 999px; padding: 4px 8px; background: #eef2ff; color: #3848a1; white-space: nowrap; }.PAGO { background: #e7f8ee; color: #087443; }.REJEITADO { background: #fff0ef; color: #b42318; }.empty { color: #69778e; text-align: center; padding: 22px; }
+    @media (max-width:680px) { main { grid-template-columns: 1fr; margin-top: 16px; }.orders { grid-column: auto; } }
+  </style>
+</head>
+<body>
+  <header><h1>Micro Store</h1><p>Pedido, estoque e pagamento em microsserviços.</p></header>
+  <main>
+    <section><div class="toolbar"><h2>Estoque disponível</h2><button class="secondary" type="button" onclick="carregarProdutos()">Atualizar</button></div><table><thead><tr><th>Produto</th><th>Disponível</th></tr></thead><tbody id="produtos"><tr><td class="empty" colspan="2">Carregando…</td></tr></tbody></table></section>
+    <section><h2>Criar pedido</h2><form id="form-pedido"><label>Produto<select id="produto" required></select></label><label>Quantidade<input id="quantidade" type="number" min="1" value="1" required></label><button type="submit">Reservar e criar pedido</button></form><p id="mensagem" class="message" role="status"></p></section>
+    <section class="orders"><div class="toolbar"><h2>Pedidos</h2><button class="secondary" type="button" onclick="carregarPedidos()">Atualizar status</button></div><table><thead><tr><th>#</th><th>Produto</th><th>Quantidade</th><th>Status</th></tr></thead><tbody id="pedidos"><tr><td class="empty" colspan="4">Carregando…</td></tr></tbody></table></section>
+  </main>
+  <script>
+    const estoqueUrl = 'http://localhost:8081/produtos';
+    const produtosEl = document.getElementById('produtos'), pedidosEl = document.getElementById('pedidos'), selectProduto = document.getElementById('produto'), mensagem = document.getElementById('mensagem');
+    const escapar = valor => String(valor).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const vazio = (elemento, colunas, texto) => elemento.innerHTML = `<tr><td class="empty" colspan="${colunas}">${texto}</td></tr>`;
+    const avisar = (texto, classe = '') => { mensagem.textContent = texto; mensagem.className = `message ${classe}`; };
+    async function carregarProdutos() {
+      try {
+        const resposta = await fetch(estoqueUrl); if (!resposta.ok) throw new Error(); const produtos = await resposta.json();
+        produtosEl.innerHTML = produtos.length ? produtos.map(p => `<tr><td>${escapar(p.nome)}</td><td>${p.quantidade}</td></tr>`).join('') : '<tr><td class="empty" colspan="2">Não há produtos.</td></tr>';
+        selectProduto.innerHTML = produtos.filter(p => p.quantidade > 0).map(p => `<option value="${p.id}">${escapar(p.nome)} (${p.quantidade} disponíveis)</option>`).join('') || '<option value="">Sem estoque disponível</option>';
+      } catch { vazio(produtosEl, 2, 'Não foi possível consultar o Estoque Service.'); selectProduto.innerHTML = '<option value="">Estoque indisponível</option>'; }
+    }
+    async function carregarPedidos() {
+      try {
+        const resposta = await fetch('/pedidos'); if (!resposta.ok) throw new Error(); const pedidos = await resposta.json();
+        pedidosEl.innerHTML = pedidos.length ? pedidos.map(p => `<tr><td>${p.id}</td><td>${p.produtoId}</td><td>${p.quantidade}</td><td><span class="status ${p.status}">${escapar(p.status)}</span></td></tr>`).join('') : '<tr><td class="empty" colspan="4">Nenhum pedido criado.</td></tr>';
+      } catch { vazio(pedidosEl, 4, 'Não foi possível consultar o Pedido Service.'); }
+    }
+    document.getElementById('form-pedido').addEventListener('submit', async e => {
+      e.preventDefault(); const produtoId = Number(selectProduto.value), quantidade = Number(document.getElementById('quantidade').value); if (!produtoId) return avisar('Selecione um produto disponível.', 'error'); avisar('Criando pedido…');
+      try { const resposta = await fetch('/pedidos', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({produtoId, quantidade})}); const corpo = await resposta.json(); if (!resposta.ok) throw new Error(corpo.mensagem || 'Não foi possível criar o pedido.'); avisar(`Pedido #${corpo.id} criado e aguardando pagamento.`, 'success'); await Promise.all([carregarProdutos(), carregarPedidos()]); } catch (erro) { avisar(erro.message, 'error'); }
+    });
+    carregarProdutos(); carregarPedidos(); setInterval(carregarPedidos, 5000);
+  </script>
+</body>
+</html>
