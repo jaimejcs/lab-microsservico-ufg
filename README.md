@@ -1,0 +1,65 @@
+# Laboratório de microsserviços
+
+Implementação em Java 21 e Spring Boot da especificação fornecida.
+
+## Serviços e responsabilidades
+
+| Serviço | Porta externa | Banco | Responsabilidade |
+| --- | --- | --- | --- |
+| Pedido Service | 8080 | `pedido-db` | Cria pedidos e acompanha seu estado. |
+| Estoque Service | 8081 | `estoque-db` | Consulta, reserva e libera produtos. |
+| Pagamento Service | — | `pagamento-db` | Processa eventos de pedido. |
+
+Nenhum serviço usa o banco de outro. A integração de reserva é síncrona por REST; os demais passos são assíncronos por RabbitMQ.
+
+```text
+POST /pedidos
+  -> Pedido Service --REST--> Estoque Service (reserva)
+  -> Pedido Service --pedido.criado--> RabbitMQ --> Pagamento Service
+  -> Pagamento Service --pagamento.processado--> RabbitMQ --> Pedido Service
+  -> se rejeitado: Pedido Service --estoque.liberar--> RabbitMQ --> Estoque Service
+```
+
+As filas são duráveis: `pedido.criado`, `pagamento.processado` e `estoque.liberar`.
+Cada reserva é identificada pelo `correlationId`; assim, reentrega de um evento de liberação não devolve estoque duas vezes.
+
+## Executar
+
+```bash
+docker compose up --build
+```
+
+RabbitMQ Management: <http://localhost:15672> (`guest` / `guest`).
+
+## Endpoints
+
+```bash
+curl http://localhost:8081/produtos
+
+curl -X POST http://localhost:8080/pedidos \
+  -H 'Content-Type: application/json' \
+  -d '{"produtoId":1,"quantidade":2}'
+
+curl http://localhost:8080/pedidos
+curl http://localhost:8080/pedidos/1
+```
+
+## Testes da atividade
+
+```bash
+# Pagamento indisponível: pedidos e reserva continuam; a fila acumula mensagens.
+docker compose stop pagamento-service
+
+# Recuperação: mensagens pendentes são consumidas sem reenvio manual.
+docker compose start pagamento-service
+
+# Dois consumidores concorrentes.
+docker compose up --scale pagamento-service=2
+
+# Logs com correlationId.
+docker compose logs pedido-service estoque-service pagamento-service
+```
+
+## Limite intencional para discussão
+
+O envio ao RabbitMQ ocorre após a gravação do pedido, mas não há uma transação distribuída entre PostgreSQL e RabbitMQ. A solução de produção para a janela de falha entre persistir e publicar é o **Transactional Outbox Pattern**. A implementação atual privilegia a demonstração direta solicitada no laboratório; essa escolha deve ser confirmada antes de introduzir a tabela outbox e um publicador confiável.

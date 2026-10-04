@@ -1,0 +1,12 @@
+spring:
+  application.name: pagamento-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/pagamento
+    username: pagamento
+    password: pagamento
+  jpa:
+    hibernate.ddl-auto: update
+    open-in-view: false
+  rabbitmq:
+    host: localhost
+logging.pattern.level: "%5p [correlationId=%X{correlationId:-sem-correlacao}]"

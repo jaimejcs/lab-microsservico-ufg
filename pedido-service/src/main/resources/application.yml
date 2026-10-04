@@ -1,0 +1,13 @@
+spring:
+  application.name: pedido-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/pedido
+    username: pedido
+    password: pedido
+  jpa:
+    hibernate.ddl-auto: update
+    open-in-view: false
+  rabbitmq:
+    host: localhost
+logging.pattern.level: "%5p [correlationId=%X{correlationId:-sem-correlacao}]"
+estoque-service.url: ${ESTOQUE_SERVICE_URL:http://localhost:8081}

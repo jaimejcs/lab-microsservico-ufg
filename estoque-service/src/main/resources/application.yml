@@ -1,0 +1,13 @@
+spring:
+  application.name: estoque-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/estoque
+    username: estoque
+    password: estoque
+  jpa:
+    hibernate.ddl-auto: update
+    open-in-view: false
+  sql.init.mode: always
+  rabbitmq:
+    host: localhost
+logging.pattern.level: "%5p [correlationId=%X{correlationId:-sem-correlacao}]"
