@@ -29,7 +29,7 @@ Cada reserva é identificada pelo `correlationId`; assim, reentrega de um evento
 docker compose up --build
 ```
 
-RabbitMQ Management: <http://localhost:15672> (`guest` / `guest`).
+RabbitMQ Management: <http://localhost:15672> (`lab` / `lab`). O usuário `guest` só entra por localhost, então os containers usam um usuário próprio. Para trocar, defina `RABBITMQ_USER` e `RABBITMQ_PASSWORD` antes do `docker compose up`.
 
 Interface web: <http://localhost:8080>. Ela permite consultar estoque, criar pedidos e acompanhar o status do pagamento.
 
@@ -37,6 +37,12 @@ Interface web: <http://localhost:8080>. Ela permite consultar estoque, criar ped
 
 ```bash
 curl http://localhost:8081/produtos
+
+curl -X PUT http://localhost:8081/produtos/1/reservar \
+  -H 'Content-Type: application/json' \
+  -d '{"quantidade":2}'
+
+O header `X-Correlation-Id` é opcional. O Pedido Service o envia para que a mesma reserva não seja descontada duas vezes.
 
 curl -X POST http://localhost:8080/pedidos \
   -H 'Content-Type: application/json' \

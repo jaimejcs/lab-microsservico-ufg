@@ -45,6 +45,19 @@ class EstoqueControllerUnitTest {
   }
 
   @Test
+  void reservaSemCorrelationIdQuandoAChamadaNaoTrazOHeader() {
+    Produto produto = new Produto(1L, "Notebook", 10);
+    when(produtos.buscarParaAtualizacao(1L)).thenReturn(Optional.of(produto));
+
+    ResponseEntity<Void> resposta = controller.reservar(1L, new QuantidadeRequest(2), null);
+
+    assertThat(resposta.getStatusCode().value()).isEqualTo(200);
+    assertThat(produto.quantidade).isEqualTo(8);
+    verify(reservas, never()).findByCorrelationId(any());
+    verify(reservas, never()).save(any());
+  }
+
+  @Test
   void mesmaCorrelacaoNaoReservaDuasVezes() {
     Reserva reserva = new Reserva("correlacao-3", 1L, 2);
     when(reservas.findByCorrelationId("correlacao-3")).thenReturn(Optional.of(reserva));

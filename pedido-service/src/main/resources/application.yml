@@ -9,5 +9,7 @@ spring:
     open-in-view: false
   rabbitmq:
     host: localhost
+    username: ${RABBITMQ_USER:lab}
+    password: ${RABBITMQ_PASSWORD:lab}
 logging.pattern.level: "%5p [correlationId=%X{correlationId:-sem-correlacao}]"
 estoque-service.url: ${ESTOQUE_SERVICE_URL:http://localhost:8081}

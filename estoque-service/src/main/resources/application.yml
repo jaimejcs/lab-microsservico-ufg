@@ -10,4 +10,6 @@ spring:
   sql.init.mode: always
   rabbitmq:
     host: localhost
+    username: ${RABBITMQ_USER:lab}
+    password: ${RABBITMQ_PASSWORD:lab}
 logging.pattern.level: "%5p [correlationId=%X{correlationId:-sem-correlacao}]"

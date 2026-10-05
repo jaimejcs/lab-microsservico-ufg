@@ -83,16 +83,16 @@ class EstoqueController {
   @GetMapping("/{id}") ProdutoResponse buscar(@PathVariable Long id) { return ProdutoResponse.de(produtos.findById(id).orElseThrow(ProdutoNaoEncontrado::new)); }
 
   @PutMapping("/{id}/reservar") @Transactional
-  ResponseEntity<Void> reservar(@PathVariable Long id, @RequestBody QuantidadeRequest request, @RequestHeader("X-Correlation-Id") String correlationId) {
-    MDC.put("correlationId", correlationId);
+  ResponseEntity<Void> reservar(@PathVariable Long id, @RequestBody QuantidadeRequest request, @RequestHeader(value = "X-Correlation-Id", required = false) String correlationId) {
+    boolean correlacionado = correlationId != null && !correlationId.isBlank();
+    if (correlacionado) MDC.put("correlationId", correlationId);
     try {
       if (request.quantidade() == null || request.quantidade() <= 0) throw new IllegalArgumentException("Quantidade deve ser positiva");
-      var existente = reservas.findByCorrelationId(correlationId);
-      if (existente.isPresent()) return ResponseEntity.ok().build();
+      if (correlacionado && reservas.findByCorrelationId(correlationId).isPresent()) return ResponseEntity.ok().build();
       var produto = produtos.buscarParaAtualizacao(id).orElseThrow(ProdutoNaoEncontrado::new);
       if (produto.quantidade < request.quantidade()) throw new EstoqueInsuficiente();
       produto.quantidade -= request.quantidade();
-      reservas.save(new Reserva(correlationId, id, request.quantidade()));
+      if (correlacionado) reservas.save(new Reserva(correlationId, id, request.quantidade()));
       org.slf4j.LoggerFactory.getLogger(getClass()).info("Produto {} reservado: {} unidade(s)", id, request.quantidade());
       return ResponseEntity.ok().build();
     } finally { MDC.remove("correlationId"); }

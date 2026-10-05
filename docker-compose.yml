@@ -4,6 +4,9 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-lab}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-lab}
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
@@ -56,8 +59,12 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://estoque-db:5432/estoque
       SPRING_DATASOURCE_USERNAME: estoque
       SPRING_DATASOURCE_PASSWORD: estoque
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-lab}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-lab}
     depends_on:
       estoque-db: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
 
   pedido-service:
     build: ./pedido-service
@@ -67,6 +74,8 @@ services:
       SPRING_DATASOURCE_USERNAME: pedido
       SPRING_DATASOURCE_PASSWORD: pedido
       SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-lab}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-lab}
       ESTOQUE_SERVICE_URL: http://estoque-service:8080
     depends_on:
       pedido-db: { condition: service_healthy }
@@ -80,6 +89,8 @@ services:
       SPRING_DATASOURCE_USERNAME: pagamento
       SPRING_DATASOURCE_PASSWORD: pagamento
       SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-lab}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-lab}
     depends_on:
       pagamento-db: { condition: service_healthy }
       rabbitmq: { condition: service_healthy }
